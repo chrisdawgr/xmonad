@@ -1,10 +1,10 @@
-Config { 
+Config {
   font = "xft:Ubuntu Mono-12",
   bgColor = "black",
-  fgColor = "#cc8400" --"orange",
+  fgColor = "#e6744c" --"#cc8400",
   position = TopW L 100,
 
-  commands = [ 
+  commands = [
     Run Cpu [
       "-H","50",
       "--high","red"
