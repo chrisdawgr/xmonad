@@ -1,7 +1,7 @@
 Config {
   font = "xft:Ubuntu Mono-12",
   bgColor = "black",
-  fgColor = "#e6744c" --"#cc8400",
+  fgColor = "#e6744c"
   position = TopW L 100,
 
   commands = [
@@ -14,11 +14,11 @@ Config {
       "-t","Mem: <usedratio>%"
     ] 10,
 
-    Run Date "%a %b %_d %l:%M" "date" 10,
+    Run Date "%a %b %d %l:%M" "date" 10,
 
     Run Battery [
-      "-t", "<acstatus>: <left>%", 
-      "--", 
+      "-t", "<acstatus>: <left>%",
+      "--",
       "-O", "AC",
       "-o", "Bat",
       "-h", "green",

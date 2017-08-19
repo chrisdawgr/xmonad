@@ -5,17 +5,40 @@ import XMonad.Layout.ResizableTile
 import XMonad.Layout.NoBorders
 import XMonad.Layout.Fullscreen
 import XMonad.Util.EZConfig
+import XMonad.Prompt
+import XMonad.Prompt.Input
+import XMonad.Prompt.Shell
+--import XMonad.Prompt.Shell
 import XMonad.Util.Run
 import XMonad.Hooks.DynamicLog
+import XMonad.Actions.DynamicWorkspaces
 import XMonad.Hooks.ManageDocks
 import XMonad.Hooks.UrgencyHook
+import XMonad.Prompt.XMonad
+--import XMonad.Prompt (defaultXPConfig)
 import XMonad.Hooks.ICCCMFocus
 import qualified XMonad.StackSet as W
 import qualified Data.Map as M
-import Data.Ratio ((%))
+--import XMonad.Actions.WorkspaceNames
+--import Data.Ratio ((%))
 import XMonad.Actions.CycleWS
 
-modM            = mod4Mask
+myFont = "xft:Fira Mono For Powerline:size=16"
+
+myXpConfig :: XPConfig
+myXpConfig = def {
+    borderColor     = "DarkOrange"
+    , bgColor       = "black"
+    , fgColor       = "#F46D43" --orange
+    , bgHLight      = "#42CBF5" --blue
+    , fgHLight      = "#f8f8f8"
+    , position      = Bottom
+    , font          = myFont
+    , height        = 24
+    , defaultText   = []
+}
+
+modM                 = mod4Mask
 myFocusedBorderColor = "#ff0000"
 myNormalBorderColor  = "#cccccc"
 myBorderWidth        = 1
@@ -26,14 +49,14 @@ myTitleLength        = 80
 myCurrentWSColor     = "#e6744c"
 myVisibleWSColor     = "#c185a7"
 myUrgentWSColor      = "#cc0000"
-myCurrentWSLeft      = "["
-myCurrentWSRight     = "]"
-myVisibleWSLeft      = "("
-myVisibleWSRight     = ")"
+curWSLeft            = "["
+curWSRight           = "]"
+myVisibleWSLeft      = ""
+myVisibleWSRight     = ""
 myUrgentWSLeft       = "{"
 myUrgentWSRight      = "}"
-
-myWorkspaces         = ["1:Docs",  "2:Dev", "3:Web", "4:Term"]
+--myWorkspaces         = ["1:Docs",  "2:Dev", "3:Web", "4:Term"]
+myWorkspaces         = ["1:Surf",  "2:Web", "3:Dev", "4:Term","5:Pdf"]
 startupWorkspace     = "1:Docs"
 
 defaultLayouts       = smartBorders(avoidStruts(
@@ -47,21 +70,20 @@ defaultLayouts       = smartBorders(avoidStruts(
 
 myKeyBindings =
     [ ((modM, xK_b), sendMessage ToggleStruts)
-    , ((modM, xK_a), sendMessage MirrorShrink)
-    , ((modM, xK_z), sendMessage MirrorExpand)
     , ((modM, xK_p), spawn "dmenu_run")
-    , ((modM, xK_q), spawn "sudo xmonad --recompile; xmonad --restart")
     , ((modM, xK_o), spawn "nautilus")
     , ((modM, xK_c), spawn "google-chrome")
     , ((modM, xK_g), spawn "evince")
     , ((modM, xK_s), spawn "subl")
     , ((modM, xK_t), spawn "texmaker")
-    , ((modM, xK_m), spawn "matlab")
-    , ((modM, xK_u), focusUrgent)
+    , ((modM, xK_x), shellPrompt defaultXPConfig)
     , ((modM,xK_w), kill)
     , ((modM, xK_Left), prevWS)
     , ((modM, xK_Right), nextWS)
-    , ((modM .|. shiftMask, xK_s)   , spawn "xfce4-screenshooter -r")
+    , ((modM .|. shiftMask, xK_r), renameWorkspace myXpConfig)
+    , ((modM .|. shiftMask, xK_s)    , spawn "xfce4-screenshooter -r")
+    --, ((modM .|. shiftMask, xK_v)    , removeWorkspace)
+    --, ((modM .|. shiftMask, xK_a)    , addWorkspace "tes_workspace")
     , ((modM .|. shiftMask, xK_l)    , spawn "gnome-screensaver-command -l")
     , ((modM .|. shiftMask, xK_space), spawn "terminator")
     , ((modM .|. shiftMask, xK_Right), shiftToNext >> nextWS)
@@ -86,7 +108,7 @@ myManagementHooks = [
 
 numPadKeys =
   [
-    xK_KP_Home, xK_KP_Up, xK_KP_Page_Up
+      xK_KP_Home, xK_KP_Up, xK_KP_Page_Up
     , xK_KP_Left, xK_KP_Begin,xK_KP_Right
     , xK_KP_End, xK_KP_Down, xK_KP_Page_Down
     , xK_KP_Insert, xK_KP_Delete, xK_KP_Enter
@@ -100,34 +122,32 @@ myKeys = myKeyBindings ++
   ]
 
 main = do
-  xmproc <- spawnPipe "xmobar ~/.xmonad/xmobarrc"
-  xmonad $ withUrgencyHook NoUrgencyHook $ defaultConfig {
+  xmproc <- spawnPipe "xmobar ~/.xmonad/xmobarrc.hs"
+  xmonad $ defaultConfig {
     focusedBorderColor = myFocusedBorderColor
+  ,logHook             = dynamicLogWithPP $ xmobarPP {
+    ppOrder            = \(ws:l:t:_)   -> [ws]
+    , ppOutput         = hPutStrLn xmproc
+    , ppTitle          = (\str -> "")
+    , ppCurrent        = xmobarColor myCurrentWSColor "" . wrap "[" "]"
+    , ppVisible        = xmobarColor myVisibleWSColor "" . wrap "" ""
+    , ppUrgent         = xmobarColor myUrgentWSColor  "" . wrap "{" "}"
+    , ppHidden         = xmobarColor "#5c7c09" ""        . wrap "" ""
+    , ppHiddenNoWindows= xmobarColor "white" "" }
+  , workspaces         = myWorkspaces
   , normalBorderColor  = myNormalBorderColor
   , focusFollowsMouse  = False
   , terminal           = myTerminal
   , borderWidth        = myBorderWidth
   , layoutHook         = lessBorders OnlyFloat $ avoidStruts $ defaultLayouts
-  , workspaces         = myWorkspaces
   , modMask            = modM
   , handleEventHook    = handleEventHook defaultConfig <+> docksEventHook
+
+  {-
   , startupHook        = do
       setWMName "LG3D"
       windows $ W.greedyView startupWorkspace
+  -}
   , manageHook         = manageHook defaultConfig <+> manageDocks
-  , logHook            = takeTopFocus <+> dynamicLogWithPP xmobarPP {
-    ppOrder            = \(ws:l:t:_)   -> [ws]
-    , ppOutput         = hPutStrLn xmproc
-    , ppTitle          = (\str -> "")
-    , ppCurrent        = xmobarColor myCurrentWSColor ""
-      . wrap myCurrentWSLeft myCurrentWSRight
-    , ppVisible        = xmobarColor myVisibleWSColor ""
-      . wrap myVisibleWSLeft myVisibleWSRight
-    , ppUrgent         = xmobarColor myUrgentWSColor ""
-      . wrap myUrgentWSLeft myUrgentWSRight
-    , ppHidden         = xmobarColor "#5c7c09" ""
-      . wrap myVisibleWSLeft myVisibleWSRight
-    , ppHiddenNoWindows= xmobarColor "white" ""
-    }
   }
     `additionalKeys` myKeys
